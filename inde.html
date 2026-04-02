@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Finance Dashboard</title>
+
+<style>
+body {
+  font-family: Arial;
+  margin: 0;
+  background: #f4f6f9;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px;
+  background: #2c3e50;
+  color: white;
+}
+
+/* Cards */
+.dashboard {
+  display: flex;
+  gap: 10px;
+  padding: 20px;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  flex: 1;
+  border-radius: 10px;
+}
+
+/* Charts */
+.charts {
+  display: flex;
+  gap: 10px;
+  padding: 20px;
+}
+
+.chart-box {
+  flex: 1;
+  height: 200px;
+  background: white;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+/* Transactions */
+.transactions {
+  padding: 20px;
+}
+
+input, select, button {
+  padding: 8px;
+  margin: 5px;
+}
+
+table {
+  width: 100%;
+  background: white;
+  border-radius: 10px;
+}
+
+th, td {
+  padding: 10px;
+}
+
+/* Insights */
+.insights {
+  padding: 20px;
+  background: white;
+  margin: 20px;
+  border-radius: 10px;
+}
+
+.hidden {
+  display: none;
+}
+
+.bar {
+  height: 20px;
+  background: #3498db;
+  margin: 5px 0;
+}
+</style>
+</head>
+
+<body>
+
+<header class="header">
+  <h2>Finance Dashboard</h2>
+  <select id="role">
+    <option value="viewer">Viewer</option>
+    <option value="admin">Admin</option>
+  </select>
+</header>
+
+<!-- Dashboard -->
+<section class="dashboard">
+  <div class="card" id="balance"></div>
+  <div class="card" id="income"></div>
+  <div class="card" id="expense"></div>
+</section>
+
+<!-- Charts -->
+<section class="charts">
+  <div class="chart-box" id="timeChart"></div>
+  <div class="chart-box" id="categoryChart"></div>
+</section>
+
+<!-- Transactions -->
+<section class="transactions">
+  <h2>Transactions</h2>
+
+  <input type="text" id="search" placeholder="Search...">
+
+  <!-- Admin Form -->
+  <div id="adminPanel">
+    <input type="text" id="amount" placeholder="Amount">
+    <input type="text" id="category" placeholder="Category">
+    <select id="type">
+      <option value="income">Income</option>
+      <option value="expense">Expense</option>
+    </select>
+    <button onclick="addTransaction()">Add</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Amount</th>
+        <th>Category</th>
+        <th>Type</th>
+      </tr>
+    </thead>
+    <tbody id="tableData"></tbody>
+  </table>
+</section>
+
+<!-- Insights -->
+<section class="insights">
+  <h2>Insights</h2>
+  <p id="topCategory"></p>
+</section>
+
+<script>
+let transactions = [
+  {date:"1 Apr", amount:2000, category:"Food", type:"expense"},
+  {date:"2 Apr", amount:5000, category:"Salary", type:"income"},
+  {date:"3 Apr", amount:1000, category:"Travel", type:"expense"}
+];
+
+function render() {
+  let table = document.getElementById("tableData");
+  table.innerHTML = "";
+
+  let income = 0, expense = 0;
+
+  transactions.forEach(t => {
+    let row = `<tr>
+      <td>${t.date}</td>
+      <td>${t.amount}</td>
+      <td>${t.category}</td>
+      <td>${t.type}</td>
+    </tr>`;
+    table.innerHTML += row;
+
+    if(t.type==="income") income += t.amount;
+    else expense += t.amount;
+  });
+
+  document.getElementById("balance").innerText = "Balance: ₹" + (income-expense);
+  document.getElementById("income").innerText = "Income: ₹" + income;
+  document.getElementById("expense").innerText = "Expense: ₹" + expense;
+
+  drawCharts();
+  insights();
+}
+
+function addTransaction() {
+  let amount = document.getElementById("amount").value;
+  let category = document.getElementById("category").value;
+  let type = document.getElementById("type").value;
+
+  if(amount && category){
+    transactions.push({
+      date: "Today",
+      amount: parseInt(amount),
+      category,
+      type
+    });
+    render();
+  }
+}
+
+function drawCharts() {
+  let timeChart = document.getElementById("timeChart");
+  timeChart.innerHTML = "<h4>Expenses Chart</h4>";
+
+  transactions.forEach(t=>{
+    if(t.type==="expense"){
+      timeChart.innerHTML += `<div class="bar" style="width:${t.amount/20}px"></div>`;
+    }
+  });
+
+  let categoryData = {};
+  transactions.forEach(t=>{
+    if(t.type==="expense"){
+      categoryData[t.category] = (categoryData[t.category] || 0) + t.amount;
+    }
+  });
+
+  let catChart = document.getElementById("categoryChart");
+  catChart.innerHTML = "<h4>Category Chart</h4>";
+
+  for(let c in categoryData){
+    catChart.innerHTML += `<p>${c}</p><div class="bar" style="width:${categoryData[c]/20}px"></div>`;
+  }
+}
+
+function insights(){
+  let map = {};
+  transactions.forEach(t=>{
+    if(t.type==="expense"){
+      map[t.category]=(map[t.category]||0)+t.amount;
+    }
+  });
+
+  let top = Object.keys(map).reduce((a,b)=> map[a]>map[b]?a:b);
+  document.getElementById("topCategory").innerText = "Highest Spending: " + top;
+}
+
+document.getElementById("role").addEventListener("change", function(){
+  let role = this.value;
+  document.getElementById("adminPanel").style.display =
+    role==="admin" ? "block" : "none";
+});
+
+document.getElementById("search").addEventListener("input", function(){
+  let val = this.value.toLowerCase();
+  let rows = document.querySelectorAll("tbody tr");
+
+  rows.forEach(r=>{
+    r.style.display = r.innerText.toLowerCase().includes(val) ? "" : "none";
+  });
+});
+
+render();
+</script>
+
+</body>
+</html>
